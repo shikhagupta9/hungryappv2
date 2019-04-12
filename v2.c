@@ -55,16 +55,29 @@ typedef struct agent       //key
     bool isfree;
 }agent;
 
-
-typedef struct bnode_agent        //node
+typedef struct datan
 {
     int count;
-    agent keys[max-1];
-    struct bnode_agent *next[max];
-    bool leaf;
-    struct bnode_agent *right;
-    struct bnode_agent *left;
+    struct datan *left,*right;
+    agent arr[3];
+}d_agent;
+
+
+typedef struct bnode_agent
+{
+    int count;
+    int keys[max-1];
+    int leaf;
+    union u
+    {
+        struct bnode_agent *next1[max];
+        d_agent *next2[max];
+    }u1;
 }b_agent;
+
+
+
+
 
 
 typedef struct spec{
@@ -75,6 +88,7 @@ typedef struct spec{
 
 typedef struct outlet
 {
+    int id;
     char name[20];
     char address[20];
     int add_code;
@@ -84,13 +98,26 @@ typedef struct outlet
     spec *facilities;
 }outlet;
 
-typedef struct bnode_outlet
+typedef struct don
 {
     int count;
-    outlet keys[max-1];
-    struct bnode_outlet *next[max],*right,*left;
-    bool leaf;
+    struct don *left,*right;
+    outlet arr[3];
+}d_outlet;
+
+
+typedef struct bnode
+{
+    int count;
+    int keys[max-1];
+    int leaf;
+    union u2
+    {
+        struct bnode *next1[max];
+        d_outlet *next2[max];
+    }u1;
 }b_outlet;
+
 
 typedef struct order
 {
@@ -100,15 +127,9 @@ typedef struct order
     agent *selected_agent;
     item *food;
     int totalprice;
+    struct order *next;
 }order;
 
-typedef struct order_bnode
-{
-    int count;
-    order keys[max-1];
-    struct order_bnode *next[max],*right,*left;
-    bool leaf;
-}b_order;
 
 typedef struct user_tag
 {
@@ -118,18 +139,29 @@ typedef struct user_tag
     char phone[10];
     int add_code;
     likes *favourites;
-    b_order *history;
+    order *history;
 }user;
 
-typedef struct user_bnode
+typedef struct datanode
 {
     int count;
-    user keys[max-1];
-    struct user_bnode *next[max];
-    struct user_bnode *right;
-    struct user_bnode *left;
-    bool leaf;
+    struct datanode *left,*right;
+    user arr[3];
+}d_user;
+
+
+typedef struct bnode_user
+{
+    int count;
+    int keys[max-1];
+    int leaf;
+    union u1
+    {
+        struct bnode_user *next1[max];
+        d_user *next2[max];
+    }u1;
 }b_user;
+
 
 
 
@@ -143,14 +175,16 @@ b_user *user_root;
 static int user_id=1;
 static int agent_id=1;
 static int order_id=1;
+static int cat_id[3] = {1,1,1};
 b_outlet *cat[3];
-b_order  *live_order_root;
+order *live_order;
 
 
 /*------------------------------------------------------*/
 
 
 void initialize_user(void);
+void initialize_agents(void);
 void initialize(void);
 void addoutlet(int category_index,outlet *o,int food_category);
 void traverse_outlet(b_outlet * outlet);
@@ -169,7 +203,7 @@ void print_menu(outlet *o);
 void cancel(void);
 void place_order(void);
 void db_outlet(int category,int food_type,char name[],char address[],int address_code,int seats,item *m,spec *s);
-void initialize_agents(void);
+
 void owner_addoutlet(void);
 void live_order_print(void);
 void agents_area(void);
@@ -194,27 +228,10 @@ void line()
 int main()
 {
     int choice,user_menu=1,running=1;
-    b_order *ptr;
-    initialize_cat();
+    
+    initialize();
     initialize_agents();
     initialize_user();
-    
-        b_order *live_order_root;
-        live_order_root = (b_order*)malloc(sizeof(b_order));
-        live_order_root->count=0;
-        live_order_root->leaf = yes;
-        live_order_root->left = live_order_root->right = NULL;
-        int i;
-        for(i=0;i<max-1;i++)
-        {
-            live_order_root->keys[i].oid = 0;
-        }
-    
-        for(i=0;i<max;i++)
-        {
-           live_order_root->next[i] = NULL;
-        }
-    
     
     
     //  db();
@@ -409,29 +426,49 @@ int main()
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 
-b_outlet* makenode_cat()
+b_outlet* makenode_cat(int leaf)
 {
-    b_outlet* temp;
+    b_outlet *root=(b_outlet*)malloc(sizeof(b_outlet));
     int i;
-    temp = (b_outlet*)malloc(sizeof(b_outlet));
-    temp->count=0;
-    temp->leaf = yes;
-    temp->left = temp->right = NULL;
-
-    for(i=0;i<max;i++)
+    root->count=0;
+    if(leaf==0)
     {
-        temp->next[i] = NULL;
+        for (i=0; i<max; i++)
+        {
+            root->u1.next1[i]=NULL;
+        }
     }
-    return temp;
+    else
+    {
+        for (i=0; i<max; i++)
+        {
+            root->u1.next2[i]=(d_outlet*)malloc(sizeof(d_outlet));
+        }
+        for (i=0; i<max; i++)
+        {
+            
+            (root->u1.next2[i])->count=0;
+            if(i<max-1)
+            { root->u1.next2[i]->right = root->u1.next2[i+1]; }
+        }
+        root->u1.next2[max-1]->right = NULL;
+    }
+    for (i=0; i<max-1; i++)
+    {
+        root->keys[i]=-1;
+    }
+    return root;
 }
 
-void initialize_cat()
+void initialize()
 {
     int i;
     for(i=0;i<3;i++)
     {
-        cat[i] = NULL;
-        cat[i] = makenode_cat();
+        cat[i] = makenode_cat(1);
+        cat[i]->leaf=1;
+        cat[i]->keys[0]=4;
+        cat[i]->count=1;
     }
 }
 
@@ -664,7 +701,7 @@ spec* make_spec(char name[])
 void place_order()
 {
     
-    int choice,i;
+    int choice,i,t;
     char name[50];
     
     order *new_order;
@@ -674,15 +711,16 @@ void place_order()
     scanf("%d",&choice);
     if(choice==1)
     {
-        search_category();
+        traverse_cat();    ////
     }
     
-    printf("Enter the NAME of restaurant");
-    scanf("%s",name);
+    printf("Enter the id of restaurant");
+    scanf("%d",t);
+    
     new_order->uid = signed_user->id;
     new_order->oid = order_id;
     order_id++;
-    new_order->selected_outlet = search_outlet(name);
+    new_order->selected_outlet = search_outlet(t);        //change search outlet fun
     new_order->totalprice=0;
     printf("Do you wish to see MENU?[1/0]");
     scanf("%d",&choice);
@@ -745,24 +783,28 @@ void place_order()
 order* assign_agent(order *o)
 {
     
-    int a[5]={0,1,2,3,4};
     int i,found=0;
     agent *selected_agent = NULL;
-    
-    Sort_addresscodes(a,(o->selected_outlet)->add_code);
-    
-    for (i=0; i<5&&found==0; i++)
+    d_agent * p=getptr_agent();
+    while (p&&found==0)
     {
-        if (free_agents[i]!=NULL)
+        if (p->count!=0)
         {
-            selected_agent=free_agents[i];
-            found=1;
-            free_agents[i]=selected_agent->next;
-            selected_agent->next=alloc_agents;
-            alloc_agents=selected_agent;
-            
+            for (int i=0; i<p->count&&found==0; i++)
+            {
+                if (p->arr[i].isfree==yes)
+                {
+                    found=1;
+                    p->arr[i].isfree = no;
+                    selected_agent = &(p->arr[i]);
+                }
+            }
         }
+        p=p->right;
     }
+    
+    
+   
     if (found==1)
     {
         o->selected_agent=selected_agent;
@@ -874,22 +916,38 @@ outlet* search_outlet(char name[])
 }
 
 
-b_user* makenode_user()
+b_user* makenode_user(int leaf)
 {
-    b_user *temp;
-    temp = (b_user*)malloc(sizeof(b_user));
-    temp->count=0;
-    temp->leaf = yes;
-    temp->left = temp->right = NULL;
-    for(i=0;i<max-1;i++)
+    b_user *root=(b_user*)malloc(sizeof(b_user));
+    int i;
+    root->count=0;
+    if(leaf==0)
     {
-        temp->keys[i].id = 0;
+        for (i=0; i<max; i++)
+        {
+            root->u1.next1[i]=NULL;
+        }
     }
-    for(i=0;i<max;i++)
+    else
     {
-        temp->next[i] = NULL;
+        for (i=0; i<max; i++)
+        {
+            root->u1.next2[i]=(d_user*)malloc(sizeof(d_user));
+        }
+        for (i=0; i<max; i++)
+        {
+            
+            (root->u1.next2[i])->count=0;
+            if(i<max-1)
+            { root->u1.next2[i]->right = root->u1.next2[i+1]; }
+        }
+        root->u1.next2[max-1]->right = NULL;
     }
-    return temp;
+    for (i=0; i<max-1; i++)
+    {
+        root->keys[i]=-1;
+    }
+    return root;
 }
 
 
@@ -899,7 +957,10 @@ b_user* makenode_user()
 void initialize_user()
 {
     user_root = NULL;
-    user_root = makenode_user();
+    user_root = makenode_user(1);
+    user_root->leaf=1;
+    user_root->keys[0]=4;
+    user_root->count=1;
 }
 
 /*_________________________________________________*/
@@ -947,8 +1008,6 @@ void delivery()
         signed_user->history = old;
         
         tobefreed=old->selected_agent;
-        tobefreed->add_code = signed_user->add_code;
-        strcpy(tobefreed->address, signed_user->address);
         tobefreed->commission += (0.1) * old->totalprice;
         
         item *menu_;
@@ -979,32 +1038,8 @@ void delivery()
             }
             menu_ = menu_->next;
         }
-        agent *al,*pr;
-        pr=alloc_agents;
-        al=alloc_agents;
-        int fl=0;
-        if (alloc_agents==tobefreed)
-        {
-            alloc_agents=alloc_agents->next;
-        }else
-        {
-            al=al->next;
-            while (al!=NULL && fl==0)
-            {
-                if (al==tobefreed)
-                {
-                    fl=1;
-                    pr->next=al->next;
-                }else
-                {
-                    pr=al;
-                    al=al->next;
-                }
-            }
-        }
+        tobefreed->isfree = yes;
         
-        tobefreed->next=free_agents[signed_user->add_code];
-        free_agents[signed_user->add_code]=tobefreed;
     }
     else
     {
@@ -1216,34 +1251,7 @@ void cancel()
     {
         
         tobefreed=old->selected_agent;
-        
-        agent *al,*pr;
-        pr=alloc_agents;
-        al=alloc_agents;
-        int fl=0;
-        if (alloc_agents==tobefreed)
-        {
-            alloc_agents=alloc_agents->next;
-        }else
-        {
-            al=al->next;
-            while (al!=NULL && fl==0)
-            {
-                if (al==tobefreed)
-                {
-                    fl=1;
-                    pr->next=al->next;
-                }else
-                {
-                    pr=al;
-                    al=al->next;
-                }
-            }
-        }
-        
-        tobefreed->next=free_agents[signed_user->add_code];
-        tobefreed->add_code = signed_user->add_code;
-        free_agents[signed_user->add_code]=tobefreed;
+        tobefreed->isfree = yes;
         free(old);
         printf("YOUR ORDER HAS BEEN CANCELLED SUCCESSFULLY\n");
     }
@@ -1287,29 +1295,50 @@ int address_code(char str[])
     return a;
 }
 
-b_agent* makenode_agent()
+
+b_agent* makenode_agent(int leaf)
 {
-    b_agent *temp;
-    temp = (b_agent*)malloc(sizeof(b_agent));
-    temp->count=0;
-    temp->leaf = yes;
-    temp->left = temp->right = NULL;
-    for(i=0;i<max-1;i++)
+    b_agent *root=(b_agent*)malloc(sizeof(b_agent));
+    int i;
+    root->count=0;
+    if(leaf==0)
     {
-        temp->keys[i].id = 0;
+        for (i=0; i<max; i++)
+        {
+            root->u1.next1[i]=NULL;
+        }
     }
-    for(i=0;i<max;i++)
+    else
     {
-        temp->next[i] = NULL;
+        for (i=0; i<max; i++)
+        {
+            root->u1.next2[i]=(d_agent*)malloc(sizeof(d_agent));
+        }
+        for (i=0; i<max; i++)
+        {
+            
+            (root->u1.next2[i])->count=0;
+            if(i<max-1)
+            { root->u1.next2[i]->right = root->u1.next2[i+1]; }
+        }
+        root->u1.next2[max-1]->right = NULL;
     }
-    return temp;
+    for (i=0; i<max-1; i++)
+    {
+        root->keys[i]=-1;
+    }
+    return root;
 }
+
 
 
 void initialize_agents()
 {
     agent_root = NULL;
     agent_root = makenode_agent();
+    agent_root->leaf=1;
+    agent_root->keys[0]=4;
+    agent_root->count=1;
 }
 
 
@@ -1343,7 +1372,7 @@ void signup_agent()
     temp.commission = 0;
     temp.isfree = yes;
     
-    insert_agent(temp);
+    insert_agent(temp,temp.id);
 }
 
 
@@ -1377,7 +1406,7 @@ void signup_user( )
     temp.id = user_id;
     user_id++;
     
-    insert_user(temp);
+    insert_user(temp,temp.id);
     printf("YOU SIGNED UP SUCCESSFULLY !!! use %d as your FUTURE ID\n",temp.id);
 }
 
@@ -1386,34 +1415,9 @@ void signup_user( )
 
 int traverse(int val)
 {
-    int flag=0,flag1,i;
-    b_user *search  = user_root;
+    //assign value to signed user
     
-    while(search!=NULL && flag==0)
-    {
-        flag1=0;
-        for(i=0;i<search->count && flag1==0;i++)
-        {
-            if(val==search->keys[i].id)
-            {
-                flag1 = 1;
-                flag = 1;
-                signed_user = &(search->keys[i]);
-            }
-            else
-            {
-                if(val < search->keys[i].id)
-                {
-                    search = search->next[i];
-                    flag1=1;
-                }
-            }
-        }
-        if(flag1==0)
-        {
-            search = search->next[i];
-        }
-    }
+   
     
     return flag;
 }
