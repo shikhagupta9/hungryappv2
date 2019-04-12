@@ -89,6 +89,7 @@ typedef struct spec{
 typedef struct outlet
 {
     int id;
+    int foodtype;
     char name[20];
     char address[20];
     int add_code;
@@ -181,6 +182,12 @@ order *live_order;
 
 
 /*------------------------------------------------------*/
+
+
+void insert_agent(agent a,int val);
+b_outlet* makenode_cat(int leaf);
+void insert_user(user a,int val);
+insert_outlet(outlet o,int val,int category);
 
 
 void initialize_user(void);
@@ -426,39 +433,365 @@ int main()
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 
-b_outlet* makenode_cat(int leaf)
+
+void read_outlet()
 {
-    b_outlet *root=(b_outlet*)malloc(sizeof(b_outlet));
-    int i;
-    root->count=0;
-    if(leaf==0)
+    FILE *fp;
+    outlet o;
+    item *i;
+    spec *s;
+    float price;
+    char name[20],address[20],in[20],f[20];
+    int ad_code,seats,category,food_type,f2,f3;
+    fp=fopen("/Users/shikhagupta/Desktop/hungryapp/hungryapp/outlet.txt", "r");
+    if (fp==NULL) {
+        printf("error opening\n");
+        exit(1);
+    }else
     {
-        for (i=0; i<max; i++)
-        {
-            root->u1.next1[i]=NULL;
-        }
-    }
-    else
-    {
-        for (i=0; i<max; i++)
-        {
-            root->u1.next2[i]=(d_outlet*)malloc(sizeof(d_outlet));
-        }
-        for (i=0; i<max; i++)
+        while ((fscanf(fp, "%d %d %d %d %s %s\n",&category,&food_type,&seats,&ad_code,name,address)!=EOF))
         {
             
-            (root->u1.next2[i])->count=0;
-            if(i<max-1)
-            { root->u1.next2[i]->right = root->u1.next2[i+1]; }
+            strcpy(o.name,name);
+            o.add_code=ad_code;
+            strcpy(o.address,address);
+            o.seats=seats;
+            o.foodtype=food_type;
+            o.menu=NULL;
+            o.facilities=NULL;
+            f2=0;
+            while (f2==0)
+            {
+                fscanf(fp, "%s %f\n",in,&price);
+                
+                if (strcmp(in, "menuover")==0)
+                {
+                    f2=1;
+                }
+                else
+                {
+                    i=(item*)malloc(sizeof(item));
+                    strcpy(i->name,in);
+                    i->price=price;
+                    i->next=o.menu;
+                    o.menu=i;
+                }
+            }
+            f3=0;
+            while (f3==0)
+            {
+                fscanf(fp, "%s\n",f);
+                
+                if (strcmp(f, "specover")==0)
+                {
+                    f3=1;
+                }else
+                {
+                    s=(spec*)malloc(sizeof(spec));
+                    strcpy(s->name,f);
+                    s->next=o.facilities;
+                    o.facilities=s;
+                }
+            }
+            
+            insert_outlet(o,o.id,category);
+            
         }
-        root->u1.next2[max-1]->right = NULL;
+        
     }
-    for (i=0; i<max-1; i++)
-    {
-        root->keys[i]=-1;
-    }
-    return root;
+    fclose(fp);
 }
+
+void writeoutlet()
+{
+    outlet o;
+    int i,j;
+    FILE *fp;
+    item *it;
+    spec *s;
+    b_outlet *ptr;
+    d_outlet *p;
+    fp=fopen("/Users/shikhagupta/Desktop/hungryapp/hungryapp/outlet.txt", "w");
+    if (fp==NULL) {
+        printf("error opening\n");
+        exit(1);
+    }else
+    {
+        for (i=0; i<3; i++)
+        {
+            
+            ptr=cat[i];
+            
+            while (ptr->leaf!=1)
+            {
+                ptr=ptr->u1.next1[0];
+            }
+            p=ptr->u1.next2[0];
+            while (p)
+            {
+                if (p->count!=0)
+                {
+                    for (int i=0; i<p->count; i++)
+                    {
+                        fprintf(fp, "%d %d %d %d %s %s\n",i,j,o.seats,o.add_code,o.name,o.address);
+                        it=o.menu;
+                        while (it)
+                        {
+                            fprintf(fp, "%s %f\n",it->name,it->price);
+                            it=it->next;
+                        }
+                        fprintf(fp, "menuover 0\n");
+                        s=o.facilities;
+                        while (s)
+                        {
+                            fprintf(fp, "%s\n",s->name);
+                            s=s->next;
+                        }
+                        fprintf(fp, "specover\n");
+                    }
+                }
+                p=p->right;
+            }
+        }
+        
+    }
+    fclose(fp);
+    
+}
+
+void file_user()
+{
+    FILE *fp;
+    user a;
+    char uname[20];
+    int uid,freq;
+    char address[20];
+    char contact[10];
+    char fname[20];
+    float price;
+    int ad_code;
+    int acount=0;
+    int f1=0,f2=0,f3=0;
+    item *i;
+    order *o;
+    likes *l;
+    fp=fopen("/Users/shikhagupta/Desktop/hungryapp/hungryapp/user.txt", "r");
+    if (fp==NULL) {
+        printf("error opening\n");
+        exit(1);
+    }else
+    {
+        
+        while ((fscanf(fp, "%d %d %s %s %s\n",&uid,&ad_code,uname,address,contact)!=EOF))
+        {
+            
+            a.id=uid;
+            a.add_code=ad_code;
+            strcpy(a.name,uname);
+            strcpy(a.address, address);
+            strcpy(a.phone, contact);
+            a.history=NULL;
+            a.favourites=NULL;
+            f2=0;
+            while (f2==0)
+            {
+                o=(order*)malloc(sizeof(order));
+                o->food=NULL;
+                f1=0;
+                while ((f1==0)&&(f2==0))
+                {
+                    fscanf(fp, "%s %f\n",fname,&price);
+                    if (strcmp(fname,"nil")==0)
+                    {
+                        f1=1;
+                    }else if (strcmp(fname, "endorder")==0)
+                    {
+                        f2=1;
+                    }
+                    else
+                    {
+                        i=(item*)malloc(sizeof(item));
+                        strcpy(i->name,fname);
+                        i->price=price;
+                        i->next=o->food;
+                        o->food=i;
+                    }
+                }
+                if (o->food)
+                {
+                    o->next=a.history;
+                    a.history=o;
+                }
+                
+            }
+            f3=0;
+            while (f3==0)
+            {
+                fscanf(fp, "%s %d\n",fname,&freq);
+                if(strcmp(fname,"endfreq")==0)
+                {
+                    f3=1;
+                }
+                else
+                {
+                    
+                    l = (likes*)malloc(sizeof(likes));
+                    l->frequency = freq;
+                    strcpy(l->name,fname);
+                    l->next = a.favourites;
+                    a.favourites = l;
+                }
+            }
+            insert_user(a,a.id);
+            acount++;
+        }
+    }
+    user_id=acount+1;
+    fclose(fp);
+}
+
+void write_user()
+{
+    FILE *fp;
+    user u;
+    order *o;
+    item *it;
+    likes *l;
+    int i;
+    
+    b_user *ptr;
+    ptr=user_root;
+    d_user *p;
+    
+    fp=fopen("/Users/shikhagupta/Desktop/hungryapp/hungryapp/user.txt", "w");
+    if (fp==NULL) {
+        printf("error opening\n");
+        exit(1);
+    }else
+    {
+        
+        while (ptr->leaf!=1)
+        {
+            ptr=ptr->u1.next1[0];
+        }
+        p=ptr->u1.next2[0];
+        while (p)
+        {
+            if (p->count!=0)
+            {
+                for (int i=0; i<p->count; i++)
+                {
+                    u=p->arr[i];
+                    
+                    fprintf(fp, "%d %d %s %s %s\n",u.id,u.add_code,u.name,u.address,u.phone);
+                    o = u.history;
+                    while(o!=NULL)
+                    {
+                        it = o->food;
+                        while(it!=NULL)
+                        {
+                            fprintf(fp,"%s %f\n",it->name,it->price);
+                            it = it->next;
+                        }
+                        fprintf(fp, "nil %d\n",0);
+                        o = o->next;
+                    }
+                    fprintf(fp, "endorder %d\n",0);
+                    l=u.favourites;
+                    while (l!=NULL)
+                    {
+                        fprintf(fp, "%s %d\n",l->name,l->frequency);
+                        l=l->next;
+                    }
+                    fprintf(fp, "endfreq %d\n",0);
+                }
+            }
+            p=p->right;
+        }
+        
+    }
+    fclose(fp);
+}
+
+
+
+
+void file_agents()
+{
+    FILE *fp;
+    agent a;
+    
+    
+    
+    char aname[20];
+    int aid;
+    char address[20];
+    char contact[10];
+    float commission;
+    int ad_code;
+    int acount=0;
+    fp=fopen("/Users/shikhagupta/Desktop/hungryapp/hungryapp/db.txt", "r");
+    if (fp==NULL) {
+        printf("error opening\n");
+        exit(1);
+    }else
+    {
+        while ((fscanf(fp, "%d %d %s %s %s %f\n",&aid,&ad_code,aname,address,contact,&commission)!=EOF))
+        {
+            
+            
+            a.id=aid;
+            a.commission=commission;
+            a.add_code=ad_code;
+            strcpy(a.name, aname);
+            strcpy(a.address, address);
+            strcpy(a.phone, contact);
+            acount++;
+            insert_agent(a,aid);
+        }
+    }
+    agent_id=acount+1;
+    fclose(fp);
+}
+
+
+void write_agents()
+{
+    FILE *fp;
+    agent a;
+    int i;
+    b_agent *ptr;
+    ptr=agent_root;
+    d_agent *p;
+    fp=fopen("/Users/shikhagupta/Desktop/hungryapp/hungryapp/db.txt", "w");
+    if (fp==NULL) {
+        printf("error opening\n");
+        exit(1);
+    }else
+    {
+        
+        
+        while (ptr->leaf!=1)
+        {
+            ptr=ptr->u1.next1[0];
+        }
+        p=ptr->u1.next2[0];
+        while (p)
+        {
+            if (p->count!=0)
+            {
+                for (int i=0; i<p->count; i++)
+                {
+                    a=p->arr[i];
+                    fprintf(fp, "%d %d %s %s %s %f\n",a.id,a.add_code,a.name,a.address,a.phone,a.commission);
+                }
+            }
+            p=p->right;
+        }
+    fclose(fp);
+    
+}
+
 
 void initialize()
 {
@@ -1543,6 +1876,39 @@ likes* mergesort_frequency(likes* list)
     return head;
 }
 
+b_outlet* makenode_cat(int leaf)
+{
+    b_outlet *root=(b_outlet*)malloc(sizeof(b_outlet));
+        int i;
+        root->count=0;
+        if(leaf==0)
+        {
+            for (i=0; i<max; i++)
+            {
+                root->u1.next1[i]=NULL;
+            }
+        }
+        else
+        {
+            for (i=0; i<max; i++)
+            {
+                root->u1.next2[i]=(d_outlet*)malloc(sizeof(d_outlet));
+            }
+            for (i=0; i<max; i++)
+            {
+                
+                (root->u1.next2[i])->count=0;
+                if(i<max-1)
+                { root->u1.next2[i]->right = root->u1.next2[i+1]; }
+            }
+            root->u1.next2[max-1]->right = NULL;
+        }
+        for (i=0; i<max-1; i++)
+        {
+            root->keys[i]=-1;
+        }
+        return root;
+    }
 
 
 
