@@ -194,7 +194,7 @@ void initialize_user(void);
 void initialize_agents(void);
 void initialize(void);
 void addoutlet(int category_index,outlet *o,int food_category);
-void traverse_outlet(b_outlet * outlet);
+void traverse_outlet(b_outlet * outlet,int foodtype , int address);
 
 void search_category(void);
 void Sort_addresscodes(int arr[],int a);
@@ -222,6 +222,14 @@ likes* mergesort_frequency(likes* list);
 likes* merge(likes* list1,likes* list2);
 likes* divide(likes* list);
 void add_item(void);
+
+void file_agents(void);
+void write_agents(void);
+void file_user(void);
+void write_user(void);
+void writeoutlet(void);
+void read_outlet(void);
+
 void line()
 {
     printf("\n--------------------------------\n");
@@ -235,11 +243,13 @@ void line()
 int main()
 {
     int choice,user_menu=1,running=1;
-    
+    order *ptr;
     initialize();
     initialize_agents();
     initialize_user();
-    
+    file_agents();
+    file_user();
+    read_outlet();
     
     //  db();
     while (running!=0)
@@ -279,7 +289,6 @@ int main()
                             break;
                         case 3:
                             ptr=signed_user->history;
-                            //trverse ptr (tree node)
                             while (ptr)
                             {
                                 item *f;
@@ -353,7 +362,7 @@ int main()
                             item *menu_temp;
                             printf("enter OUTLET name\n");
                             scanf("%s",out);
-                            ptr=search_outlet(out);
+                            ptr=search_outlet(out);////?????????
                             if (ptr) {
                                 line();
                                 printf("food outlet name: %s\nNumber of seats: %d\nAddress:  %s",ptr->name,ptr->seats,ptr->address);
@@ -433,6 +442,266 @@ int main()
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 
+void initialize()
+{
+    int i;
+    for(i=0;i<3;i++)
+    {
+        cat[i] = makenode_cat(1);
+        cat[i]->leaf=1;
+        cat[i]->keys[0]=4;
+        cat[i]->count=1;
+    }
+}
+/*------------------------------------------------------*/
+
+/*------------------------------------------------------*/
+
+
+int distance(int first,int second)
+{
+    int d;
+    d=(X[first]-X[second])*(X[first]-X[second])+(Y[first]-Y[second])*(Y[first]-Y[second]);
+    return d;
+}
+
+
+/*------------------------------------------------------*/
+
+
+void print_menu(outlet *o)
+{
+    item *ptr;
+    ptr=o->menu;
+    while (ptr)
+    {
+        printf("item name: %s\nprice: %f",ptr->name,ptr->price);
+        ptr=ptr->next;
+    }
+}
+
+/*------------------------------------------------------*/
+
+
+void Sort_addresscodes(int arr[],int a)
+{
+    
+    int i, key, j;
+    for (i = 1; i < 5; i++)
+    {
+        key = arr[i];
+        j = i-1;
+        while (j >= 0 && distance(arr[j],a) >distance(key, a))
+        {
+            arr[j+1] = arr[j];
+            j = j-1;
+        }
+        arr[j+1] = key;
+    }
+    
+}
+
+
+/*_________________________________________________*/
+
+
+
+void db_outlet(int category,int food_type,char name[],char address[],int address_code,int seats,item *m,spec *s)
+{
+    outlet *o;
+    o=(outlet*)malloc(sizeof(outlet));
+    o->menu=NULL;
+    o->facilities=NULL;
+    strcpy(o->name,name);
+    strcpy(o->address, address);
+    o->add_code=address_code;
+    o->seats=seats;
+    m->next=o->menu;
+    o->menu=m;
+    s->next=o->facilities;
+    o->facilities=s;
+    o->next=cat[category].type[food_type];
+    cat[category].type[food_type]=o;
+    
+}
+
+
+/*------------------------------------------------------*/
+
+
+void db()
+{
+    db_outlet(cafe, continental, "fuel_station", "asgard", asgard, 25, make_item("sandwich", 50), make_spec("wifi"));
+    db_outlet(rest, chinese, "nankings", "wallstreet", wallstreet, 15, make_item("noodles", 100), make_spec("chopsticks"));
+    db_outlet(pub,north_indian, "locals", "pinkcity", pinkcity, 30, make_item("fries",250), make_spec("dj"));/*change*/
+    db_outlet(rest, south_indian, "veeraswami", "diagonalley", diagonalley, 45, make_item("idli", 20), make_spec("fun_area"));
+    
+}
+
+
+/*------------------------------------------------------*/
+
+
+void traverse_outlet(b_outlet * out,int foodtype , int address)
+{
+    
+    b_outlet *ptr=out;
+    d_outlet *p;
+    outlet o;
+    item *menu_temp;
+    int i=0;
+    
+    while (ptr->leaf!=1)
+    {
+        ptr=ptr->u1.next1[0];
+    }
+    p=ptr->u1.next2[0];
+    if (address==-1)
+    {
+        
+        while (p)
+        {
+            if (p->count!=0)
+            {
+                for (int i=0; i<p->count; i++)
+                {
+                    o=p->arr[i];
+                    if (foodtype==-1)
+                    {
+                        line();
+                        
+                        printf("Food outlet name: %s\nNumber of seats: %d\nAddress: %s\nAddress code:%d\n",o.name,o.seats,o.address,o.add_code);
+                        line();
+                        menu_temp = o.menu;
+                        while(menu_temp!=NULL)
+                        {
+                            printf("\nitem name: %s\nprice: %f\n\n",menu_temp->name,menu_temp->price);
+                            menu_temp = menu_temp->next;
+                        }
+                    }else
+                    {
+                        if (o.foodtype==foodtype)
+                        {
+                            
+                            line();
+                            
+                            printf("Food outlet name: %s\nNumber of seats: %d\nAddress: %s\nAddress code:%d\n",o.name,o.seats,o.address,o.add_code);
+                            line();
+                            menu_temp = o.menu;
+                            while(menu_temp!=NULL)
+                            {
+                                printf("\nitem name: %s\nprice: %f\n\n",menu_temp->name,menu_temp->price);
+                                menu_temp = menu_temp->next;
+                            }
+                        }
+                    }
+                    
+                    
+                    
+                }
+            }
+            p=p->right;
+        }
+        
+    }
+    else
+    {
+        int a[5]={0,1,2,3,4};
+        Sort_addresscodes(a,signed_user->add_code);
+        while (p)
+        {
+            if (p->count!=0)
+            {
+                for (int i=0; i<p->count; i++)
+                {
+                    o=p->arr[i];
+                    if (o.add_code==a[0]||o.add_code==a[1]||o.add_code==a[2])
+                    {
+                        if (foodtype==-1)
+                        {
+                            line();
+                            
+                            printf("Food outlet name: %s\nNumber of seats: %d\nAddress: %s\nAddress code:%d\n",o.name,o.seats,o.address,o.add_code);
+                            line();
+                            menu_temp = o.menu;
+                            while(menu_temp!=NULL)
+                            {
+                                printf("\nitem name: %s\nprice: %f\n\n",menu_temp->name,menu_temp->price);
+                                menu_temp = menu_temp->next;
+                            }
+                        }else
+                        {
+                            if (o.foodtype==foodtype)
+                            {
+                                
+                                line();
+                                
+                                printf("Food outlet name: %s\nNumber of seats: %d\nAddress: %s\nAddress code:%d\n",o.name,o.seats,o.address,o.add_code);
+                                line();
+                                menu_temp = o.menu;
+                                while(menu_temp!=NULL)
+                                {
+                                    printf("\nitem name: %s\nprice: %f\n\n",menu_temp->name,menu_temp->price);
+                                    menu_temp = menu_temp->next;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            p=p->right;
+        }
+        
+        
+    }
+    
+}
+/*------------------------------------------------------*/
+
+
+void search_category()
+{
+    int t,index1,i,address=-1,j;
+    outlet *ptr;
+    b_outlet *select;
+    line();
+    printf("enter the CATEGORY of food outlet you wish to view \n1-restaurant  \n2-cafe \n3-pub  \n4-all?\n");
+    scanf("%d",&t);
+    
+    index1=t-1;
+    
+    printf("what FOOD CATEGORY do you wish to view? \n 1-southindian  \n 2-northindian  \n3-chinese  \n4-continental \n-1-all \n");
+    scanf("%d",&t);
+    
+    
+    printf("\ndo you wish to see only NEARBY food outlets?[1/-1]\n");
+    scanf("%d",&address);
+    
+    if (address!=(-1))
+    {
+        address = signed_user->add_code;
+    }
+    
+    if(index1<3)
+    {
+        select=cat[index1];
+        traverse_outlet(select, t, address);
+       
+    }
+    else
+    {
+        
+        for (i=0; i<3; i++)
+        {
+            select=cat[i];
+            traverse_outlet(select, t, address);
+            
+        }
+        
+    }
+    
+}
+/*------------------------------------------------------*/
 
 void read_outlet()
 {
@@ -501,7 +770,7 @@ void read_outlet()
     }
     fclose(fp);
 }
-
+/*------------------------------------------------------*/
 void writeoutlet()
 {
     outlet o;
@@ -533,7 +802,7 @@ void writeoutlet()
                 {
                     for (int i=0; i<p->count; i++)
                     {
-                        fprintf(fp, "%d %d %d %d %s %s\n",i,j,o.seats,o.add_code,o.name,o.address);
+                        fprintf(fp, "%d %d %d %d %s %s\n",i,o.foodtype,o.seats,o.add_code,o.name,o.address);
                         it=o.menu;
                         while (it)
                         {
@@ -793,219 +1062,7 @@ void write_agents()
 }
 
 
-void initialize()
-{
-    int i;
-    for(i=0;i<3;i++)
-    {
-        cat[i] = makenode_cat(1);
-        cat[i]->leaf=1;
-        cat[i]->keys[0]=4;
-        cat[i]->count=1;
-    }
-}
 
-
-/*------------------------------------------------------*/
-
-
-int distance(int first,int second)
-{
-    int d;
-    d=(X[first]-X[second])*(X[first]-X[second])+(Y[first]-Y[second])*(Y[first]-Y[second]);
-    return d;
-}
-
-
-/*------------------------------------------------------*/
-
-
-void traverse_outlet(b_outlet * outlet)
-{
-    
-    b_outlet *ptr;
-    ptr=outlet;
-    item *menu_temp;
-    
-    int i=0,j;
-    
-    if(ptr!=NULL)
-    {
-        for (i=0; i<ptr->count+1; i++)
-        {
-            if(ptr->next[i]!=NULL)
-            {
-                traverse_outlet(ptr->next[i]);
-                if(i < ptr->count )
-                {
-                    printf(" %d ",ptr->keys[i]);
-                }
-            }
-            else
-            {
-                for (j=0; j<ptr->count; j++)
-                {
-                    printf("Food outlet name: %s\nNumber of seats: %d\nAddress: %s\nAddress code:%d\n food type:%d\n",ptr->keys[i].name,ptr->keys[i].seats,ptr->keys[i].address,ptr->keys[i].add_code,ptr->keys[i].type);
-            
-                    line();
-                    menu_temp = ptr->keys[i].menu;
-                    while(menu_temp!=NULL)
-                    {
-                        printf("\nitem name: %s\nprice: %f\n\n",menu_temp->name,menu_temp->price);
-                        menu_temp = menu_temp->next;
-                    }
-                }
-                i = 100;
-            }
-        }
-    }
-}
-
-
-/*------------------------------------------------------*/
-
-
-void search_category()
-{
-    int t,index1,i,address=-1,j;
-    outlet *ptr;
-    category select;
-    line();
-    printf("enter the CATEGORY of food outlet you wish to view \n1-restaurant  \n2-cafe \n3-pub  \n4-all?\n");
-    scanf("%d",&t);
-    
-    index1=t-1;
-    
-    printf("what FOOD CATEGORY do you wish to view? \n 1-southindian  \n 2-northindian  \n3-chinese  \n4-continental \n5-all \n");
-    scanf("%d",&t);
-    
-    
-    printf("\ndo you wish to see only NEARBY food outlets?[1/-1]\n");
-    scanf("%d",&address);
-    
-    if (address!=(-1))
-    {
-        address = signed_user->add_code;
-    }
-    
-    if(index1<3)
-    {
-        select=cat[index1];
-        
-        if(t<=4)
-        {
-            ptr=select.type[t-1];
-            traverse_outlet(ptr,address);
-        }
-        else
-        {
-            for(i=0;i<4;i++)
-            {
-                ptr=select.type[i];
-                traverse_outlet(ptr,address);
-            }
-        }
-    }
-    else
-    {
-        
-        for (i=0; i<3; i++)
-        {
-            select=cat[i];
-            if(t<=4)
-            {
-                ptr=select.type[t-1];
-                traverse_outlet(ptr,address);
-            }
-            else
-            {
-                for(j=0;j<4;j++)
-                {
-                    ptr=select.type[j];
-                    traverse_outlet(ptr,address);
-                }
-            }
-            
-        }
-        
-    }
-    
-}
-
-/*-------------------------------------------*/
-
-
-void print_menu(outlet *o)
-{
-    item *ptr;
-    ptr=o->menu;
-    while (ptr)
-    {
-        printf("item name: %s\nprice: %f",ptr->name,ptr->price);
-        ptr=ptr->next;
-    }
-}
-
-/*------------------------------------------------------*/
-
-
-void Sort_addresscodes(int arr[],int a)
-{
-    
-    int i, key, j;
-    for (i = 1; i < 5; i++)
-    {
-        key = arr[i];
-        j = i-1;
-        while (j >= 0 && distance(arr[j],a) >distance(key, a))
-        {
-            arr[j+1] = arr[j];
-            j = j-1;
-        }
-        arr[j+1] = key;
-    }
-    
-}
-
-
-/*_________________________________________________*/
-
-
-
-void db_outlet(int category,int food_type,char name[],char address[],int address_code,int seats,item *m,spec *s)
-{
-    outlet *o;
-    o=(outlet*)malloc(sizeof(outlet));
-    o->menu=NULL;
-    o->facilities=NULL;
-    strcpy(o->name,name);
-    strcpy(o->address, address);
-    o->add_code=address_code;
-    o->seats=seats;
-    m->next=o->menu;
-    o->menu=m;
-    s->next=o->facilities;
-    o->facilities=s;
-    o->next=cat[category].type[food_type];
-    cat[category].type[food_type]=o;
-    
-}
-
-
-/*------------------------------------------------------*/
-
-
-void db()
-{
-    db_outlet(cafe, continental, "fuel_station", "asgard", asgard, 25, make_item("sandwich", 50), make_spec("wifi"));
-    db_outlet(rest, chinese, "nankings", "wallstreet", wallstreet, 15, make_item("noodles", 100), make_spec("chopsticks"));
-    db_outlet(pub,north_indian, "locals", "pinkcity", pinkcity, 30, make_item("fries",250), make_spec("dj"));/*change*/
-    db_outlet(rest, south_indian, "veeraswami", "diagonalley", diagonalley, 45, make_item("idli", 20), make_spec("fun_area"));
-    
-}
-
-
-/*------------------------------------------------------*/
 
 
 item *make_item(char name[],float price)
@@ -1909,6 +1966,7 @@ b_outlet* makenode_cat(int leaf)
         }
         return root;
     }
+    
 
 
 
