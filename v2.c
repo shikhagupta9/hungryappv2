@@ -448,6 +448,13 @@ b_outlet* makenode_cat(int leaf)
         {
             
             (root->u1.next2[i])->count=0;
+            int x;
+            for(x=0;x<3;x++)
+            {
+               (root->u1.next2[i])->arr[x].menu = NULL;
+               (root->u1.next2[i])->arr[x].facilities = NULL;
+            }
+
             if(i<max-1)
             { root->u1.next2[i]->right = root->u1.next2[i+1]; }
         }
@@ -459,6 +466,8 @@ b_outlet* makenode_cat(int leaf)
     }
     return root;
 }
+
+
 
 void initialize()
 {
@@ -532,7 +541,7 @@ void traverse_outlet(b_outlet * outlet)
 /*------------------------------------------------------*/
 
 
-void search_category()
+void search_category()                             ///////////////
 {
     int t,index1,i,address=-1,j;
     outlet *ptr;
@@ -638,38 +647,7 @@ void Sort_addresscodes(int arr[],int a)
 /*_________________________________________________*/
 
 
-
-void db_outlet(int category,int food_type,char name[],char address[],int address_code,int seats,item *m,spec *s)
-{
-    outlet *o;
-    o=(outlet*)malloc(sizeof(outlet));
-    o->menu=NULL;
-    o->facilities=NULL;
-    strcpy(o->name,name);
-    strcpy(o->address, address);
-    o->add_code=address_code;
-    o->seats=seats;
-    m->next=o->menu;
-    o->menu=m;
-    s->next=o->facilities;
-    o->facilities=s;
-    o->next=cat[category].type[food_type];
-    cat[category].type[food_type]=o;
-    
-}
-
-
 /*------------------------------------------------------*/
-
-
-void db()
-{
-    db_outlet(cafe, continental, "fuel_station", "asgard", asgard, 25, make_item("sandwich", 50), make_spec("wifi"));
-    db_outlet(rest, chinese, "nankings", "wallstreet", wallstreet, 15, make_item("noodles", 100), make_spec("chopsticks"));
-    db_outlet(pub,north_indian, "locals", "pinkcity", pinkcity, 30, make_item("fries",250), make_spec("dj"));/*change*/
-    db_outlet(rest, south_indian, "veeraswami", "diagonalley", diagonalley, 45, make_item("idli", 20), make_spec("fun_area"));
-    
-}
 
 
 /*------------------------------------------------------*/
@@ -831,10 +809,11 @@ void print_outlet(void)
 {
     char name[20];
     outlet *s;
+    int t;
     spec *f;
-    printf("Enter restaurant name\n");
-    scanf("%s",name);
-    s=search_outlet(name);
+    printf("Enter restaurant id\n");
+    scanf("%d",t);
+    s=search_outlet(t);
     if (s)
     {
         printf("Restaurant name: %s\nRestaurant address: %s\n",s->name,s->address);
@@ -879,41 +858,45 @@ void live_order_print()
 
 
 /*------------------------------------------------------*/
-
-
-outlet* search_outlet(char name[])
+d_outlet* getptr_outlet(int i)
 {
-    int t,j,found=0;
-    outlet *search = NULL,*ptr;
-    category select;
-    
-    for(t=0;t<3 && found==0;t++)
+   b_outlet* ptr = cat[i];
+   while(ptr->leaf!=1)
+   {
+     ptr = ptr->u1.next1[0];
+   }
+
+   d_outlet *p;
+   p = ptr->u1.next2[0];
+   return p;   
+}
+
+
+
+outlet* search_outlet(int t)
+{
+    int i,j,found=0;
+    d_outlet *ptr;
+    outlet *search;
+
+    for(j=0;j<3 && found==0 ;j++)
     {
-        
-        select = cat[t];
-        for(j=0;j<4 && found==0;j++)
-        {
-            
-            ptr = select.type[j];
-            while(ptr!=NULL && found==0)
-            {
-                if(strcmp(ptr->name,name)==0)
-                {
-                    search = ptr;
-                    found=1;
-                }
-                else
-                {
-                    ptr = ptr->next;
-                }
-            }
-            
-        }
-        
+       ptr = getptr_outlet(j);
+       while(ptr!=NULL && found==0)
+       {
+          for(i=0;i<ptr->count && found==0;i++)
+          {
+             if(ptr->arr[i].id == t)
+             { found=1; search = &(ptr->arr[i]);}
+          }
+          ptr = ptr->right;
+       }
+
     }
     
     return search;
 }
+
 
 
 b_user* makenode_user(int leaf)
@@ -1060,14 +1043,18 @@ void owner_addoutlet()
     new_outlet=(outlet*)malloc(sizeof(outlet));
     new_outlet->menu=NULL;
     new_outlet->facilities=NULL;
+
     int outlet_type,food_category,c=1;
     line();
+
     printf("enter outlet type>\n1>restaurant\n2>cafe\n3>pub\n");
     scanf("%d",&outlet_type);
     outlet_type=outlet_type-1;
+
     printf("enter outlet type>\n1>south_indian\n2>nothindian\n3>continental\n4>chinese\n");
     scanf("%d",&food_category);
-    food_category=food_category-1;
+     
+    new_outlet->ftype = food_category-1;
     printf("enter outlet name\n");
     scanf("%s",new_outlet->name);
     printf("enter outlet address\n");
@@ -1102,113 +1089,65 @@ void owner_addoutlet()
         printf("do you wish to enter another special feature?[1/0]\n");
         scanf("%d",&c);
     }
-    addoutlet(outlet_type, new_outlet, food_category);
+    new_outlet->id = cat_id[food_category];
+    cat_id[food_category]++;
+
+    insert_outlet(new_outlet,outlet_type,new_outlet->id);                   ////////////////
     
 }
 
 /*------------------------------------------------------*/
 
-
-void agents_area()
-{
-    agent *a;
-    int i;
-    for (i=0; i<areas; i++)
-    {
-        a=free_agents[i];
-        if (a) {
-            line();
-            printf("area: %s\n",address[i]);
-        }
-        
-        while (a)
-        {
-            line();
-            printf("name: %s \ncontact: %s\n id: %d\n",a->name,a->phone,a->id);
-            a=a->next;
-        }
-    }
-}
-
-
 /*--------------------------------------------------------*/
+d_user* getptr_agent()
+ {
+	   b_agent* ptr = agent_root;
+	   d_agent *p;
+	   while(ptr->leaf!=1)
+	   {
+		   ptr = ptr->u1.next1[0];
+	   }
+	   
+	    p = ptr->u1.next2[0];
+	   return p;
+ }
+
 
 
 void agent_details()
 {
+  //agent details areawise
    
-    agent *a;
-    int i;
-    for (i=0; i<areas; i++)
+    d_user *ptr = getptr_agent();
+    d_user *temp;
+    int i,count=0;
+   
+    while(count<4)
     {
-        a=free_agents[i];
-        while (a)
-        {
-            line();
-            printf("name: %s \ncontact: %s \naddress: %s\n",a->name,a->phone,address[a->add_code]);
-            a=a->next;
-        }
-    }
-    a=alloc_agents;
-    while (a)
-    {
-        line();
-        printf("name: %s\n contact: %s\n address: %s\n",a->name,a->phone,address[a->add_code]);
-        a=a->next;
-    }
+       ptr = temp;
+       printf("agents assigned to area: %s are: ",address[count]);
+           while (ptr)
+           {
+
+		     for(i=0;i<ptr->count;i++)
+		     {
+                          if(ptr->arr[i].add_code == count)
+		          {  
+                              printf("name: %s\n contact: %s\n address: %s\n",ptr->arr[i].name,ptr->arr[i].phone,ptr->arr[i].address);
+		              line();
+                          }
+		     }
+		    
+                ptr = ptr->right;
+           }
+        count++;
+    }    
+
 }
 
 
 /*_________________________________________________*/
 
-
-
-void addoutlet(int category_index,outlet *o,int food_category)
-{
-    o->next=cat[category_index].type[food_category];
-    cat[category_index].type[food_category]=o;
-}
-
-
-void add_item()
-{
-    int choice;
-    char name[20];
-    outlet *o;
-    item *it;
-    printf("If you want to browse OUTLETS enter 1 else 0\n");
-    scanf("%d",&choice);
-    line();
-    if(choice==1)
-    {
-        search_category();
-    }
-    line();
-    printf("Enter the NAME of restaurant\n");
-    scanf("%s",name);
-    o = search_outlet(name);
-    if(o!=NULL)
-    {
-        
-        int count=1;
-        while(count)
-        {
-            it = (item*)malloc(sizeof(item));
-            printf("enter the name and price of item to ADD\n");
-            scanf("%s %f",it->name,&it->price);
-            it->next = o->menu;
-            o->menu = it;
-            printf("IF you want to add more items press 1 else 0\n");
-            scanf("%d",&count);
-        }
-        
-    }
-    else
-    {
-        printf("Oops! no such outlet is there\n");
-    }
-}
-/*_________________________________________________*/
 
 
 void cancel()
@@ -1413,31 +1352,76 @@ void signup_user( )
 
 /*_________________________________________________*/
 
-int traverse(int val)
+void traverse_user()
+ {
+
+	    b_user *ptr = user_root;
+	    d_user *p;
+	    while (ptr->leaf!=1)
+	    {
+		ptr=ptr->u1.next1[0];
+	    }
+	    p=ptr->u1.next2[0];
+	    while (p)
+	    {
+		if (p->count!=0)
+		{
+		    for (int i=0; i<p->count; i++)
+		    {
+		        printf("name: %s and  id:  %d\n",p->arr[i].name,p->arr[i].id);
+		    }
+		}
+		p=p->right;
+	    }
+ }
+
+
+d_user* getptr_user()
 {
-    //assign value to signed user
-    
+   b_user* ptr = user_root;
+   d_user *p;
+   while(ptr->leaf!=1)
+   {
+           ptr = ptr->u1.next1[0];
+   }
    
-    
-    return flag;
+    p = ptr->u1.next2[0];
+   return p;
 }
+
 
 void signin_user()
 {
-    int t,flag=0;
+    int t,found=0;
     printf("enter your USER ID\n");
     scanf("%d",&t);
     
-    flag = traverse(t);
-    
-    if(flag==0)
-    {
-        printf("NO USER FOUND WITH GIVEN ID !!!\n PLEASE SIGN UP FIRST\n");
-    }
-    else
-    {
-        printf("WELCOME!! %s\n",signed_user.name);
-    }
+    d_user *p = getptr_user();
+	      while(p&&found==0)
+	      {
+		 if (p->count!=0)
+		 {
+		     for (int i=0; i<p->count&&found==0; i++)
+		     {
+		         if (p->arr[i].id==t)
+		         {
+		            found=1;
+			    signed_user = &(p->arr[i]);
+		         }
+		     }
+		 }
+		 p=p->right;
+	      }
+	    
+ 
+	    if(found==0)
+	    {
+		printf("NO USER FOUND WITH GIVEN ID !!!\n PLEASE SIGN UP FIRST\n");
+	    }
+	    else
+	    {
+		printf("WELCOME!! %s\n",signed_user.name);
+	    }
     
 }
 
@@ -1544,6 +1528,991 @@ likes* mergesort_frequency(likes* list)
 }
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+int insertSorted(int arr[], int n, int key, int capacity)
+{
+    // Cannot insert more elements if n is already
+    // more than or equal to capcity
+    if (n >= capacity)
+        return n;
+    
+    int i;
+    for (i=n-1; ( i >= 0  && arr[i] > key); i--)
+        arr[i+1] = arr[i];
+    
+    arr[i+1] = key;
+    
+    return (n+1);
+}
 
+
+
+
+int insertSorted1(user arr[], int n, user key, int capacity)
+{
+    // Cannot insert more elements if n is already
+    // more than or equal to capcity
+    if (n >= capacity)
+        return n;
+    
+    int i;
+    for (i=n-1; ( i >= 0  && arr[i].id > key.id); i--)
+        arr[i+1] = arr[i];
+    
+    arr[i+1] = key;
+    
+    return (n+1);
+}
+
+
+
+
+void insert_user(user *pval,int val)
+{
+    b_user *ptr,*temp,*child;
+    int done=0;
+    ptr = user_root;
+    int pos = 0,i,flag=0,t,median,index_median,j;
+    
+    while(ptr != NULL && done == 0)
+    {//1
+        for(i=0;i<ptr->count && flag==0;i++)
+        {
+            if(val<ptr->keys[i])
+            {
+                flag=1;
+                pos=i;
+            }
+        }
+        if(flag==0)
+        {
+            pos = ptr->count;
+        }
+        //to find pos
+        
+        if(ptr->leaf==1)
+        {//2
+            done=1;
+            if((ptr->u1.next2[pos])->count < 3)
+            {
+                (ptr->u1.next2[pos])->count=insertSortedq1((ptr->u1.next2[pos])->arr, (ptr->u1.next2[pos])->count,pval, 3);
+                
+            }
+            else
+            {
+                if(ptr->count!=max-1)
+                {
+                    user temp[4];
+                    for(i=0;i<(ptr->u1.next2[pos])->count;i++)
+                    {
+                        temp[i] = (ptr->u1.next2[pos])->arr[i];
+                    }
+                    insertSorted1(temp,3,pval,4);
+                    for(i=ptr->count;i>pos;i--)
+                    {
+                        ptr->keys[i] = ptr->keys[i-1];
+                    }
+                    ptr->keys[i] = temp[2];
+                    
+                    for(i=ptr->count+1;i>pos+1;i--)
+                    {
+                        ptr->u1.next2[i] = ptr->u1.next2[i-1];
+                    }
+                    ptr->count++;
+                    ptr->u1.next2[i]->count=2;
+                    
+                    ptr->u1.next2[i]->arr[0] = temp[2];
+                    ptr->u1.next2[i]->arr[1] = temp[3];
+                    
+                    ptr->u1.next2[pos]->count=2;
+                    
+                    ptr->u1.next2[pos]->arr[0] = temp[0];
+                    ptr->u1.next2[pos]->arr[1] = temp[1];
+                }
+                else
+                {
+                    if(pos == (max-1)/2)
+                    {
+                        median = val;
+                        index_median = pos;
+                    }
+                    else
+                    {
+                        if(pos > (max-1)/2)
+                        {
+                            index_median = (max-1)/2;
+                            median = ptr->keys[index_median];
+                        }
+                        else
+                        {
+                            index_median = (max-1)/2-1;
+                            median = ptr->keys[index_median];
+                        }
+                    }
+                    
+                    b_user *nptr,*sibling;
+                    nptr = makenode_user(0);
+                    sibling = makenode_user(1);
+                    
+                    nptr->count=1;
+                    nptr->keys[0]=median;
+                    nptr->u1.next1[0] = ptr;
+                    nptr->u1.next1[1] = sibling;
+                    nptr->leaf=0;
+                    sibling->leaf=1;
+                    user_root = nptr;
+                    int t[max],j;
+                    for(i=0;i<ptr->count;i++)
+                    {
+                        t[i] = ptr->keys[i];
+                    }
+                    insertSorted(t,ptr->count,val,max);
+                    for(i=0;i<index_median;i++)
+                    {
+                        ptr->keys[i] = t[i];
+                    }
+                    ptr->count = sibling->count = i;
+                    i++;
+                    for(j=0;j<sibling->count;j++)
+                    {
+                        sibling->keys[j] = t[i];
+                        i++;
+                    }
+                    for(j=0;j<sibling->count;j++)
+                    {
+                        *(sibling->u1.next2[j]) = *(ptr->u1.next2[index_median+1+j]);
+                        ptr->u1.next2[index_median+1+j]->count=0;
+                    }
+                    //so we have splitted parent node
+                    ptr->u1.next2[max-1]->right = sibling->u1.next2[0];
+                    if(val>median)
+                    {
+                        ptr = sibling;
+                        
+                    }
+                    done=0;
+                    
+                }
+                
+            }//leaf wala case
+        }//2
+        else
+        {
+            //ptr is an internal node
+            if((ptr->u1.next1[pos])->count < max-1)
+            {
+                ptr = ptr->u1.next1[pos];
+            }
+            else
+            {
+                if(ptr->count == max-1)
+                {
+                    //splitting of parent node
+                    index_median = (max-1)/2;
+                    median = ptr->keys[index_median];
+                    b_user *nptr,*sibling;
+                    
+                    sibling = makenode_user(0);
+                    nptr = makenode_user(0);
+                    sibling->leaf=0;
+                    nptr->leaf=0;
+                    nptr->count=1;
+                    nptr->keys[0] = median;
+                    nptr->u1.next1[0] = ptr;
+                    nptr->u1.next1[1] = sibling;
+                    user_root = nptr;
+                    
+                    sibling->count = (max-1)/2 -1;
+                    for(i=0;i<sibling->count;i++)
+                    {
+                        sibling->keys[i] = ptr->keys[i+index_median+1];
+                    }
+                    
+                    for(i=0;i<=sibling->count;i++)
+                    {
+                        sibling->u1.next1[i] = ptr->u1.next1[index_median+1+i];
+                    }
+                    
+                    ptr->count = (max-1)/2;
+                    
+                    if(val>median)
+                    {
+                        ptr = sibling;
+                    }
+                    flag=0;
+                    for(i=0;i<ptr->count && flag==0;i++)
+                    {
+                        if(val<ptr->keys[i])
+                        {
+                            flag=1;
+                            pos=i;
+                        }
+                    }
+                    if(flag==0)
+                    {
+                        pos = ptr->count;
+                    }
+                    
+                    
+                    
+                    
+                    nptr = ptr->u1.next1[pos];      //child
+                    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    if(nptr->leaf==1)
+                    {
+                        b_user *sibling;
+                        sibling = makenode_user(1);
+                        sibling->count = (max-1)/2 - 1;
+                        
+                        index_median = (max-1)/2;
+                        median = nptr->keys[index_median];
+                        
+                        
+                        for(i=0;i<sibling->count;i++)
+                        {
+                            sibling->keys[i] = nptr->keys[index_median+1+i];
+                        }
+                        
+                        for(i=0;i<=sibling->count;i++)
+                        {
+                            sibling->u1.next2[i] = nptr->u1.next2[index_median+1+i];
+                            nptr->u1.next2[index_median+1+i]->count = 0;
+                        }
+                        
+                        nptr->count = (max-1)/2;
+                        nptr->u1.next2[max-1]->right = sibling->u1.next2[0];
+                        
+                        for(i=ptr->count;i>pos;i--)
+                        {
+                            ptr->keys[i] = ptr->keys[i-1];
+                        }
+                        ptr->keys[i] = median;
+                        
+                        for(i=ptr->count+1;i>pos+1;i--)
+                        {
+                            ptr->u1.next1[i] = ptr->u1.next1[i-1];
+                        }
+                        ptr->u1.next1[i] = sibling;
+                        
+                        
+                        if(val>median)
+                        {
+                            ptr = sibling;
+                        }
+                        
+                        flag=0;
+                        
+                        for(i=0;i<ptr->count && flag==0;i++)
+                        {
+                            if(val<ptr->keys[i])
+                            {
+                                flag=1;
+                                pos=i;
+                            }
+                        }
+                        if(flag==0)
+                        {
+                            pos = ptr->count;
+                        }
+                        
+                        sibling->leaf=1;
+                        
+                    }
+                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    else
+                    {
+                        //ptr is parent
+                        //nptr is child
+                        b_user *sibling;
+                        sibling = makenode_user(0);
+                        
+                        sibling->count = (max-1)/2 - 1;
+                        sibling->leaf = 0;
+                        index_median = (max-1)/2;
+                        median = nptr->keys[index_median];
+                        for(i=ptr->count;i>pos;i--)
+                        {
+                            ptr->keys[i] = ptr->keys[i-1];
+                        }
+                        ptr->keys[i] = median;
+                        
+                        for(i=ptr->count+1;i>pos+1;i--)
+                        {
+                            ptr->u1.next1[i] = ptr->u1.next1[i-1];
+                        }
+                        ptr->u1.next1[i] = sibling;
+                        
+                        for(i=0;i<sibling->count;i++)
+                        {
+                            sibling->keys[i] = nptr->keys[index_median+1+i];
+                        }
+                        for(i=0;i<=sibling->count;i++)
+                        {
+                            sibling->u1.next1[i] = nptr->u1.next1[index_median+i+1];
+                        }
+                        nptr->count = (max-1/2);
+                        ptr->count ++;
+                        if(val>median)
+                        { ptr = sibling; }
+                        
+                    }
+                    
+                }
+            }
+        }//2
+        
+        
+        
+        
+        
+        
+    }//1
+    
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int insertSorted2(agent arr[], int n, agent key, int capacity)
+{
+    // Cannot insert more elements if n is already
+    // more than or equal to capcity
+    if (n >= capacity)
+        return n;
+    
+    int i;
+    for (i=n-1; ( i >= 0  && arr[i].id > key.id); i--)
+        arr[i+1] = arr[i];
+    
+    arr[i+1] = key;
+    
+    return (n+1);
+}
+
+
+
+
+void insert_agent(agent *pval,int val)
+{
+    b_agent *ptr,*temp,*child;
+    int done=0;
+    ptr = agent_root;
+    int pos = 0,i,flag=0,t,median,index_median,j;
+    
+    while(ptr != NULL && done == 0)
+    {//1
+        for(i=0;i<ptr->count && flag==0;i++)
+        {
+            if(val<ptr->keys[i])
+            {
+                flag=1;
+                pos=i;
+            }
+        }
+        if(flag==0)
+        {
+            pos = ptr->count;
+        }
+        //to find pos
+        
+        if(ptr->leaf==1)
+        {//2
+            done=1;
+            if((ptr->u1.next2[pos])->count < 3)
+            {
+                (ptr->u1.next2[pos])->count=insertSorted2((ptr->u1.next2[pos])->arr, (ptr->u1.next2[pos])->count,pval, 3);
+                
+            }
+            else
+            {
+                if(ptr->count!=max-1)
+                {
+                    agent temp[4];
+                    for(i=0;i<(ptr->u1.next2[pos])->count;i++)
+                    {
+                        temp[i] = (ptr->u1.next2[pos])->arr[i];
+                    }
+                    insertSorted2(temp,3,pval,4);
+                    for(i=ptr->count;i>pos;i--)
+                    {
+                        ptr->keys[i] = ptr->keys[i-1];
+                    }
+                    ptr->keys[i] = temp[2];
+                    
+                    for(i=ptr->count+1;i>pos+1;i--)
+                    {
+                        ptr->u1.next2[i] = ptr->u1.next2[i-1];
+                    }
+                    ptr->count++;
+                    ptr->u1.next2[i]->count=2;
+                    
+                    ptr->u1.next2[i]->arr[0] = temp[2];
+                    ptr->u1.next2[i]->arr[1] = temp[3];
+                    
+                    ptr->u1.next2[pos]->count=2;
+                    
+                    ptr->u1.next2[pos]->arr[0] = temp[0];
+                    ptr->u1.next2[pos]->arr[1] = temp[1];
+                }
+                else
+                {
+                    if(pos == (max-1)/2)
+                    {
+                        median = val;
+                        index_median = pos;
+                    }
+                    else
+                    {
+                        if(pos > (max-1)/2)
+                        {
+                            index_median = (max-1)/2;
+                            median = ptr->keys[index_median];
+                        }
+                        else
+                        {
+                            index_median = (max-1)/2-1;
+                            median = ptr->keys[index_median];
+                        }
+                    }
+                    
+                    b_agent *nptr,*sibling;
+                    nptr = makenode_agent(0);
+                    sibling = makenode_agent(1);
+                    
+                    nptr->count=1;
+                    nptr->keys[0]=median;
+                    nptr->u1.next1[0] = ptr;
+                    nptr->u1.next1[1] = sibling;
+                    nptr->leaf=0;
+                    sibling->leaf=1;
+                    agent_root = nptr;
+                    int t[max],j;
+                    for(i=0;i<ptr->count;i++)
+                    {
+                        t[i] = ptr->keys[i];
+                    }
+                    insertSorted(t,ptr->count,val,max);
+                    for(i=0;i<index_median;i++)
+                    {
+                        ptr->keys[i] = t[i];
+                    }
+                    ptr->count = sibling->count = i;
+                    i++;
+                    for(j=0;j<sibling->count;j++)
+                    {
+                        sibling->keys[j] = t[i];
+                        i++;
+                    }
+                    for(j=0;j<sibling->count;j++)
+                    {
+                        *(sibling->u1.next2[j]) = *(ptr->u1.next2[index_median+1+j]);
+                        ptr->u1.next2[index_median+1+j]->count=0;
+                    }
+                    //so we have splitted parent node
+                    ptr->u1.next2[max-1]->right = sibling->u1.next2[0];
+                    if(val>median)
+                    {
+                        ptr = sibling;
+                        
+                    }
+                    done=0;
+                    
+                }
+                
+            }//leaf wala case
+        }//2
+        else
+        {
+            //ptr is an internal node
+            if((ptr->u1.next1[pos])->count < max-1)
+            {
+                ptr = ptr->u1.next1[pos];
+            }
+            else
+            {
+                if(ptr->count == max-1)
+                {
+                    //splitting of parent node
+                    index_median = (max-1)/2;
+                    median = ptr->keys[index_median];
+                    b_agent *nptr,*sibling;
+                    
+                    sibling = makenode_agent(0);
+                    nptr = makenode_agent(0);
+                    sibling->leaf=0;
+                    nptr->leaf=0;
+                    nptr->count=1;
+                    nptr->keys[0] = median;
+                    nptr->u1.next1[0] = ptr;
+                    nptr->u1.next1[1] = sibling;
+                    agent_root = nptr;
+                    
+                    sibling->count = (max-1)/2 -1;
+                    for(i=0;i<sibling->count;i++)
+                    {
+                        sibling->keys[i] = ptr->keys[i+index_median+1];
+                    }
+                    
+                    for(i=0;i<=sibling->count;i++)
+                    {
+                        sibling->u1.next1[i] = ptr->u1.next1[index_median+1+i];
+                    }
+                    
+                    ptr->count = (max-1)/2;
+                    
+                    if(val>median)
+                    {
+                        ptr = sibling;
+                    }
+                    flag=0;
+                    for(i=0;i<ptr->count && flag==0;i++)
+                    {
+                        if(val<ptr->keys[i])
+                        {
+                            flag=1;
+                            pos=i;
+                        }
+                    }
+                    if(flag==0)
+                    {
+                        pos = ptr->count;
+                    }
+                    
+                    
+                    
+                    
+                    nptr = ptr->u1.next1[pos];      //child
+                    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    if(nptr->leaf==1)
+                    {
+                        b_agent *sibling;
+                        sibling = makenode_agent(1);
+                        sibling->count = (max-1)/2 - 1;
+                        
+                        index_median = (max-1)/2;
+                        median = nptr->keys[index_median];
+                        
+                        
+                        for(i=0;i<sibling->count;i++)
+                        {
+                            sibling->keys[i] = nptr->keys[index_median+1+i];
+                        }
+                        
+                        for(i=0;i<=sibling->count;i++)
+                        {
+                            sibling->u1.next2[i] = nptr->u1.next2[index_median+1+i];
+                            nptr->u1.next2[index_median+1+i]->count = 0;
+                        }
+                        
+                        nptr->count = (max-1)/2;
+                        nptr->u1.next2[max-1]->right = sibling->u1.next2[0];
+                        
+                        for(i=ptr->count;i>pos;i--)
+                        {
+                            ptr->keys[i] = ptr->keys[i-1];
+                        }
+                        ptr->keys[i] = median;
+                        
+                        for(i=ptr->count+1;i>pos+1;i--)
+                        {
+                            ptr->u1.next1[i] = ptr->u1.next1[i-1];
+                        }
+                        ptr->u1.next1[i] = sibling;
+                        
+                        
+                        if(val>median)
+                        {
+                            ptr = sibling;
+                        }
+                        
+                        flag=0;
+                        
+                        for(i=0;i<ptr->count && flag==0;i++)
+                        {
+                            if(val<ptr->keys[i])
+                            {
+                                flag=1;
+                                pos=i;
+                            }
+                        }
+                        if(flag==0)
+                        {
+                            pos = ptr->count;
+                        }
+                        
+                        sibling->leaf=1;
+                        
+                    }
+                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    else
+                    {
+                        //ptr is parent
+                        //nptr is child
+                        b_agent *sibling;
+                        sibling = makenode_agent(0);
+                        
+                        sibling->count = (max-1)/2 - 1;
+                        sibling->leaf = 0;
+                        index_median = (max-1)/2;
+                        median = nptr->keys[index_median];
+                        for(i=ptr->count;i>pos;i--)
+                        {
+                            ptr->keys[i] = ptr->keys[i-1];
+                        }
+                        ptr->keys[i] = median;
+                        
+                        for(i=ptr->count+1;i>pos+1;i--)
+                        {
+                            ptr->u1.next1[i] = ptr->u1.next1[i-1];
+                        }
+                        ptr->u1.next1[i] = sibling;
+                        
+                        for(i=0;i<sibling->count;i++)
+                        {
+                            sibling->keys[i] = nptr->keys[index_median+1+i];
+                        }
+                        for(i=0;i<=sibling->count;i++)
+                        {
+                            sibling->u1.next1[i] = nptr->u1.next1[index_median+i+1];
+                        }
+                        nptr->count = (max-1/2);
+                        ptr->count ++;
+                        if(val>median)
+                        { ptr = sibling; }
+                        
+                    }
+                    
+                }
+            }
+        }//2
+        
+        
+        
+        
+        
+        
+    }//1
+    
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+int insertSorted3(outlet arr[], int n, agent outlet, int capacity)
+{
+    // Cannot insert more elements if n is already
+    // more than or equal to capcity
+    if (n >= capacity)
+        return n;
+    
+    int i;
+    for (i=n-1; ( i >= 0  && arr[i].id > key.id); i--)
+        arr[i+1] = arr[i];
+    
+    arr[i+1] = key;
+    
+    return (n+1);
+}
+
+
+void insert_outlet(outlet *pval,int val,int food_type)
+{
+    b_outlet *ptr,*temp,*child;
+    int done=0;
+    ptr = cat[food_type];
+    int pos = 0,i,flag=0,t,median,index_median,j;
+    
+    while(ptr != NULL && done == 0)
+    {//1
+        for(i=0;i<ptr->count && flag==0;i++)
+        {
+            if(val<ptr->keys[i])
+            {
+                flag=1;
+                pos=i;
+            }
+        }
+        if(flag==0)
+        {
+            pos = ptr->count;
+        }
+        //to find pos
+        
+        if(ptr->leaf==1)
+        {//2
+            done=1;
+            if((ptr->u1.next2[pos])->count < 3)
+            
+                (ptr->u1.next2[pos])->count=insertSorted3((ptr->u1.next2[pos])->arr, (ptr->u1.next2[pos])->count,pval, 3);
+                
+            }
+            else
+            {
+                if(ptr->count!=max-1)
+                {
+                    outlet temp[4];
+                    for(i=0;i<(ptr->u1.next2[pos])->count;i++)
+                    {
+                        temp[i] = (ptr->u1.next2[pos])->arr[i];
+                    }
+                    insertSorted3(temp,3,pval,4);
+                    for(i=ptr->count;i>pos;i--)
+                    {
+                        ptr->keys[i] = ptr->keys[i-1];
+                    }
+                    ptr->keys[i] = temp[2];
+                    
+                    for(i=ptr->count+1;i>pos+1;i--)
+                    {
+                        ptr->u1.next2[i] = ptr->u1.next2[i-1];
+                    }
+                    ptr->count++;
+                    ptr->u1.next2[i]->count=2;
+                    
+                    ptr->u1.next2[i]->arr[0] = temp[2];
+                    ptr->u1.next2[i]->arr[1] = temp[3];
+                    
+                    ptr->u1.next2[pos]->count=2;
+                    
+                    ptr->u1.next2[pos]->arr[0] = temp[0];
+                    ptr->u1.next2[pos]->arr[1] = temp[1];
+                }
+                else
+                {
+                    if(pos == (max-1)/2)
+                    {
+                        median = val;
+                        index_median = pos;
+                    }
+                    else
+                    {
+                        if(pos > (max-1)/2)
+                        {
+                            index_median = (max-1)/2;
+                            median = ptr->keys[index_median];
+                        }
+                        else
+                        {
+                            index_median = (max-1)/2-1;
+                            median = ptr->keys[index_median];
+                        }
+                    }
+                    
+                    b_outlet *nptr,*sibling;
+                    nptr = makenode_cat(0);
+                    sibling = makenode_cat(1);
+                    
+                    nptr->count=1;
+                    nptr->keys[0]=median;
+                    nptr->u1.next1[0] = ptr;
+                    nptr->u1.next1[1] = sibling;
+                    nptr->leaf=0;
+                    sibling->leaf=1;
+                    cat[food_type] = nptr;
+                    int t[max],j;
+                    for(i=0;i<ptr->count;i++)
+                    {
+                        t[i] = ptr->keys[i];
+                    }
+                    insertSorted(t,ptr->count,val,max);
+                    for(i=0;i<index_median;i++)
+                    {
+                        ptr->keys[i] = t[i];
+                    }
+                    ptr->count = sibling->count = i;
+                    i++;
+                    for(j=0;j<sibling->count;j++)
+                    {
+                        sibling->keys[j] = t[i];
+                        i++;
+                    }
+                    for(j=0;j<sibling->count;j++)
+                    {
+                        *(sibling->u1.next2[j]) = *(ptr->u1.next2[index_median+1+j]);
+                        ptr->u1.next2[index_median+1+j]->count=0;
+                    }
+                    //so we have splitted parent node
+                    ptr->u1.next2[max-1]->right = sibling->u1.next2[0];
+                    if(val>median)
+                    {
+                        ptr = sibling;
+                        
+                    }
+                    done=0;
+                    
+                }
+                
+            }//leaf wala case
+        }//2
+        else
+        {
+            //ptr is an internal node
+            if((ptr->u1.next1[pos])->count < max-1)
+            {
+                ptr = ptr->u1.next1[pos];
+            }
+            else
+            {
+                if(ptr->count == max-1)
+                {
+                    //splitting of parent node
+                    index_median = (max-1)/2;
+                    median = ptr->keys[index_median];
+                    b_outlet *nptr,*sibling;
+                    
+                    sibling = makenode_cat(0);
+                    nptr = makenode_cat(0);
+                    sibling->leaf=0;
+                    nptr->leaf=0;
+                    nptr->count=1;
+                    nptr->keys[0] = median;
+                    nptr->u1.next1[0] = ptr;
+                    nptr->u1.next1[1] = sibling;
+                    cat[food_type] = nptr;
+                    
+                    sibling->count = (max-1)/2 -1;
+                    for(i=0;i<sibling->count;i++)
+                    {
+                        sibling->keys[i] = ptr->keys[i+index_median+1];
+                    }
+                    
+                    for(i=0;i<=sibling->count;i++)
+                    {
+                        sibling->u1.next1[i] = ptr->u1.next1[index_median+1+i];
+                    }
+                    
+                    ptr->count = (max-1)/2;
+                    
+                    if(val>median)
+                    {
+                        ptr = sibling;
+                    }
+                    flag=0;
+                    for(i=0;i<ptr->count && flag==0;i++)
+                    {
+                        if(val<ptr->keys[i])
+                        {
+                            flag=1;
+                            pos=i;
+                        }
+                    }
+                    if(flag==0)
+                    {
+                        pos = ptr->count;
+                    }
+                    
+                    
+                    
+                    
+                    nptr = ptr->u1.next1[pos];      //child
+                    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    if(nptr->leaf==1)
+                    {
+                        b_outlet *sibling;
+                        sibling = makenode_cat(1);
+                        sibling->count = (max-1)/2 - 1;
+                        
+                        index_median = (max-1)/2;
+                        median = nptr->keys[index_median];
+                        
+                        
+                        for(i=0;i<sibling->count;i++)
+                        {
+                            sibling->keys[i] = nptr->keys[index_median+1+i];
+                        }
+                        
+                        for(i=0;i<=sibling->count;i++)
+                        {
+                            sibling->u1.next2[i] = nptr->u1.next2[index_median+1+i];
+                            nptr->u1.next2[index_median+1+i]->count = 0;
+                        }
+                        
+                        nptr->count = (max-1)/2;
+                        nptr->u1.next2[max-1]->right = sibling->u1.next2[0];
+                        
+                        for(i=ptr->count;i>pos;i--)
+                        {
+                            ptr->keys[i] = ptr->keys[i-1];
+                        }
+                        ptr->keys[i] = median;
+                        
+                        for(i=ptr->count+1;i>pos+1;i--)
+                        {
+                            ptr->u1.next1[i] = ptr->u1.next1[i-1];
+                        }
+                        ptr->u1.next1[i] = sibling;
+                        
+                        
+                        if(val>median)
+                        {
+                            ptr = sibling;
+                        }
+                        
+                        flag=0;
+                        
+                        for(i=0;i<ptr->count && flag==0;i++)
+                        {
+                            if(val<ptr->keys[i])
+                            {
+                                flag=1;
+                                pos=i;
+                            }
+                        }
+                        if(flag==0)
+                        {
+                            pos = ptr->count;
+                        }
+                        
+                        sibling->leaf=1;
+                        
+                    }
+                    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    else
+                    {
+                        //ptr is parent
+                        //nptr is child
+                        b_outlet *sibling;
+                        sibling = makenode_cat(0);
+                        
+                        sibling->count = (max-1)/2 - 1;
+                        sibling->leaf = 0;
+                        index_median = (max-1)/2;
+                        median = nptr->keys[index_median];
+                        for(i=ptr->count;i>pos;i--)
+                        {
+                            ptr->keys[i] = ptr->keys[i-1];
+                        }
+                        ptr->keys[i] = median;
+                        
+                        for(i=ptr->count+1;i>pos+1;i--)
+                        {
+                            ptr->u1.next1[i] = ptr->u1.next1[i-1];
+                        }
+                        ptr->u1.next1[i] = sibling;
+                        
+                        for(i=0;i<sibling->count;i++)
+                        {
+                            sibling->keys[i] = nptr->keys[index_median+1+i];
+                        }
+                        for(i=0;i<=sibling->count;i++)
+                        {
+                            sibling->u1.next1[i] = nptr->u1.next1[index_median+i+1];
+                        }
+                        nptr->count = (max-1/2);
+                        ptr->count ++;
+                        if(val>median)
+                        { ptr = sibling; }
+                        
+                    }
+                    
+                }
+            }
+        }//2
+        
+        
+        
+        
+        
+        
+    }//1
+    
+}
 
 
